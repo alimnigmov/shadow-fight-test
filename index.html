@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Shadow Fight Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white;
+      font-family: Arial;
+    }
+    canvas {
+      background: #000;
+      border: 2px solid #444;
+      touch-action: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="360" height="640"></canvas>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    let x = 160;
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'white';
+      ctx.fillRect(x, 500, 40, 80);
+      requestAnimationFrame(draw);
+    }
+
+    canvas.addEventListener('touchmove', e => {
+      x = e.touches[0].clientX - canvas.getBoundingClientRect().left - 20;
+    });
+
+    draw();
+  </script>
+</body>
+</html>
