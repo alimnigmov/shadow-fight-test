@@ -12,37 +12,121 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      color: white;
       font-family: Arial;
+      overflow: hidden;
+      touch-action: none;
+      color: white;
     }
+
+    #game-container {
+      position: relative;
+    }
+
     canvas {
       background: #000;
       border: 2px solid #444;
-      touch-action: none;
+      display: block;
     }
+
+    .btn {
+      position: absolute;
+      bottom: 20px;
+      width: 80px;
+      height: 50px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      background: #555;
+      color: white;
+      opacity: 0.7;
+    }
+
+    #btn-left { left: 10px; }
+    #btn-right { left: 100px; }
+    #btn-jump { right: 100px; }
+    #btn-attack { right: 10px; }
   </style>
 </head>
 <body>
-  <canvas id="game" width="360" height="640"></canvas>
+  <div id="game-container">
+    <canvas id="game" width="360" height="640"></canvas>
+
+    <button id="btn-left" class="btn">◀</button>
+    <button id="btn-right" class="btn">▶</button>
+    <button id="btn-jump" class="btn">Прыжок</button>
+    <button id="btn-attack" class="btn">Удар</button>
+  </div>
 
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
 
     let x = 160;
+    let y = 500;
+    let isJumping = false;
+    let jumpVelocity = 0;
+    let isAttacking = false;
+
+    const speed = 5;
+    const jumpPower = 15;
+    const gravity = 1;
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // персонаж
       ctx.fillStyle = 'white';
-      ctx.fillRect(x, 500, 40, 80);
+      ctx.fillRect(x, y, 40, 80);
+
+      // удар
+      if(isAttacking) {
+        ctx.fillStyle = 'red';
+        ctx.fillRect(x + 40, y + 20, 30, 10);
+      }
+
       requestAnimationFrame(draw);
     }
 
+    function update() {
+      if(isJumping) {
+        y -= jumpVelocity;
+        jumpVelocity -= gravity;
+        if(y >= 500) {
+          y = 500;
+          isJumping = false;
+        }
+      }
+      requestAnimationFrame(update);
+    }
+
+    // кнопки
+    const btnLeft = document.getElementById('btn-left');
+    const btnRight = document.getElementById('btn-right');
+    const btnJump = document.getElementById('btn-jump');
+    const btnAttack = document.getElementById('btn-attack');
+
+    btnLeft.addEventListener('touchstart', () => { x -= speed; });
+    btnRight.addEventListener('touchstart', () => { x += speed; });
+
+    btnJump.addEventListener('touchstart', () => {
+      if(!isJumping) {
+        isJumping = true;
+        jumpVelocity = jumpPower;
+      }
+    });
+
+    btnAttack.addEventListener('touchstart', () => {
+      isAttacking = true;
+      setTimeout(() => { isAttacking = false; }, 300);
+    });
+
+    // движение пальцем
     canvas.addEventListener('touchmove', e => {
       x = e.touches[0].clientX - canvas.getBoundingClientRect().left - 20;
     });
 
     draw();
+    update();
   </script>
 </body>
 </html>
