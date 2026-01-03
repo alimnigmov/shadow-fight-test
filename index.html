@@ -2,68 +2,87 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Shadow Fight Browser</title>
+<title>Shadow Fight Mobile</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
-  body {
-    margin: 0;
-    background: #111;
-    overflow: hidden;
-    font-family: Arial, sans-serif;
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
-  #game-container { position: relative; }
+body {
+  margin: 0;
+  background: #111;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+#game-container { position: relative; width: 100%; height: 100%; }
 
-  canvas {
-    background: #222;
-    border: 2px solid #444;
-    display: block;
-  }
+canvas {
+  display: block;
+  background: #222;
+  margin: auto;
+  touch-action: none;
+}
 
-  /* Джойстик */
-  #joystick {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    width: 100px;
-    height: 100px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 50%;
-    touch-action: none;
-  }
-  #stick {
-    position: absolute;
-    width: 40px;
-    height: 40px;
-    background: rgba(255,255,255,0.5);
-    border-radius: 50%;
-    top: 30px;
-    left: 30px;
-    touch-action: none;
-  }
+/* Джойстик */
+#joystick {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 120px;
+  height: 120px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+}
+#stick {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 50%;
+  top: 30px;
+  left: 30px;
+}
 
-  /* Кнопки ударов */
-  .btn {
-    position: absolute;
-    bottom: 20px;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: none;
-    font-size: 24px;
-    text-align: center;
-    line-height: 60px;
-    color: white;
-    opacity: 0.8;
-  }
+/* Кнопки ударов */
+.btn {
+  position: absolute;
+  bottom: 20px;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: none;
+  font-size: 30px;
+  text-align: center;
+  line-height: 70px;
+  color: white;
+  opacity: 0.9;
+}
+#punch { right: 100px; background: #5af; }
+#kick { right: 20px; background: #f55; }
 
-  #punch { right: 100px; background: #5af; }
-  #kick { right: 20px; background: #f55; }
+/* Полоски здоровья */
+#player-hp-bar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 45%;
+  height: 20px;
+  background: #555;
+  border: 2px solid #999;
+}
+#player-health { height: 100%; background: #0f0; width: 100%; }
 
+#enemy-hp-bar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 45%;
+  height: 20px;
+  background: #555;
+  border: 2px solid #999;
+}
+#enemy-health { height: 100%; background: #f00; width: 100%; }
 </style>
 </head>
 <body>
@@ -74,25 +93,25 @@
 
   <button id="punch" class="btn">👊</button>
   <button id="kick" class="btn">🦶</button>
+
+  <div id="player-hp-bar"><div id="player-health"></div></div>
+  <div id="enemy-hp-bar"><div id="enemy-health"></div></div>
 </div>
 
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
+const playerHealthBar = document.getElementById('player-health');
+const enemyHealthBar = document.getElementById('enemy-health');
 
 // Игрок
-let player = {
-  x: 100, y: 240, w: 40, h: 80, color: 'white',
-  vx: 0, isPunching: false, isKicking: false
-};
-
+let player = {x:100, y:220, w:40, h:80, color:'#0ff', vx:0, isPunching:false, isKicking:false, hp:100};
 // Враг
-let enemy = {
-  x: 500, y: 240, w: 40, h: 80, color: 'red',
-  vx: 0, isPunching: false, isKicking: false
-};
+let enemy = {x:500, y:220, w:40, h:80, color:'#f0f', vx:0, isPunching:false, isKicking:false, hp:100};
 
-const speed = 3;
+const speed = 4;
+const attackRange = 50;
+const attackDamage = 10;
 
 // Джойстик
 const joystick = document.getElementById('joystick');
@@ -100,71 +119,94 @@ const stick = document.getElementById('stick');
 let joyX = 0;
 let joystickActive = false;
 
-stick.addEventListener('touchstart', e => { joystickActive = true; });
-stick.addEventListener('touchmove', e => {
+stick.addEventListener('touchstart', e=>{ joystickActive=true; });
+stick.addEventListener('touchmove', e=>{
   if(!joystickActive) return;
   let rect = joystick.getBoundingClientRect();
   let touch = e.touches[0];
   let dx = touch.clientX - rect.left - rect.width/2;
   let max = rect.width/2;
-  if(dx > max) dx = max;
-  if(dx < -max) dx = -max;
-  joyX = dx / max * speed;
-  stick.style.left = 30 + dx + 'px';
+  if(dx>max) dx=max;
+  if(dx<-max) dx=-max;
+  joyX = dx/max*speed;
+  stick.style.left = 30+dx+'px';
 });
-stick.addEventListener('touchend', e => { joystickActive = false; joyX = 0; stick.style.left = '30px'; });
+stick.addEventListener('touchend', e=>{ joystickActive=false; joyX=0; stick.style.left='30px'; });
 
 // Кнопки ударов
-document.getElementById('punch').addEventListener('touchstart', () => {
-  player.isPunching = true;
-  setTimeout(() => { player.isPunching = false; }, 300);
+document.getElementById('punch').addEventListener('touchstart', ()=>{
+  player.isPunching=true;
+  checkAttack(player, enemy);
+  setTimeout(()=>player.isPunching=false,300);
 });
-document.getElementById('kick').addEventListener('touchstart', () => {
-  player.isKicking = true;
-  setTimeout(() => { player.isKicking = false; }, 300);
+document.getElementById('kick').addEventListener('touchstart', ()=>{
+  player.isKicking=true;
+  checkAttack(player, enemy);
+  setTimeout(()=>player.isKicking=false,300);
 });
 
-// Основной цикл
-function update() {
-  // Движение игрока
+// Проверка попадания
+function checkAttack(attacker, target){
+  if(Math.abs(attacker.x - target.x)<attackRange){
+    target.hp -= attackDamage;
+    if(target.hp<0) target.hp=0;
+  }
+}
+
+// AI врага
+function enemyAI(){
+  if(enemy.hp<=0) return;
+  if(enemy.x>player.x+50) enemy.vx=-2;
+  else if(enemy.x<player.x-50) enemy.vx=2;
+  else enemy.vx=0;
+
+  // Случайные атаки
+  if(Math.random()<0.01){ enemy.isPunching=true; checkAttack(enemy, player); setTimeout(()=>enemy.isPunching=false,300);}
+  if(Math.random()<0.01){ enemy.isKicking=true; checkAttack(enemy, player); setTimeout(()=>enemy.isKicking=false,300);}
+}
+
+// Обновление
+function update(){
+  // Игрок
   player.x += joyX;
-  if(player.x < 0) player.x = 0;
-  if(player.x + player.w > canvas.width) player.x = canvas.width - player.w;
+  if(player.x<0) player.x=0;
+  if(player.x+player.w>canvas.width) player.x=canvas.width-player.w;
 
-  // Движение врага (простой AI)
-  if(enemy.x > player.x + 50) enemy.vx = -2;
-  else if(enemy.x < player.x - 50) enemy.vx = 2;
-  else enemy.vx = 0;
-
+  // Враг
   enemy.x += enemy.vx;
+  enemyAI();
 
-  // Враг случайно атакует
-  if(Math.random() < 0.01) enemy.isPunching = true;
-  if(Math.random() < 0.01) enemy.isKicking = true;
-  if(enemy.isPunching) setTimeout(()=>enemy.isPunching=false,300);
-  if(enemy.isKicking) setTimeout(()=>enemy.isKicking=false,300);
+  // Обновление полос здоровья
+  playerHealthBar.style.width = player.hp+'%';
+  enemyHealthBar.style.width = enemy.hp+'%';
 
   requestAnimationFrame(update);
 }
 
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+// Отрисовка
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
   // Фон
-  ctx.fillStyle = '#222';
+  ctx.fillStyle='#222';
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  // Игрок
-  ctx.fillStyle = player.color;
+  // Игрок пиксельный
+  ctx.fillStyle=player.color;
   ctx.fillRect(player.x, player.y, player.w, player.h);
-  if(player.isPunching) ctx.fillStyle='#5af', ctx.fillRect(player.x+player.w, player.y+20, 30, 15);
-  if(player.isKicking) ctx.fillStyle='#f55', ctx.fillRect(player.x+player.w, player.y+50, 30, 15);
 
-  // Враг
-  ctx.fillStyle = enemy.color;
+  // Определяем сторону удара игрока
+  let dir = (enemy.x > player.x) ? 1 : -1;
+  if(player.isPunching) ctx.fillStyle='#5af', ctx.fillRect(player.x + (dir>0?player.w: -30), player.y+20, 30,15);
+  if(player.isKicking) ctx.fillStyle='#f55', ctx.fillRect(player.x + (dir>0?player.w: -30), player.y+50, 30,15);
+
+  // Враг пиксельный
+  ctx.fillStyle=enemy.color;
   ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
-  if(enemy.isPunching) ctx.fillStyle='#5af', ctx.fillRect(enemy.x-30, enemy.y+20, 30, 15);
-  if(enemy.isKicking) ctx.fillStyle='#f55', ctx.fillRect(enemy.x-30, enemy.y+50, 30, 15);
+
+  let dirEnemy = (player.x > enemy.x) ? 1 : -1;
+  if(enemy.isPunching) ctx.fillStyle='#5af', ctx.fillRect(enemy.x + (dirEnemy>0?enemy.w: -30), enemy.y+20, 30,15);
+  if(enemy.isKicking) ctx.fillStyle='#f55', ctx.fillRect(enemy.x + (dirEnemy>0?enemy.w: -30), enemy.y+50, 30,15);
 
   requestAnimationFrame(draw);
 }
